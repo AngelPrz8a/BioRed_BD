@@ -1,0 +1,129 @@
+@startuml
+!theme plain
+hide circle
+skinparam shadowing false
+skinparam nodesep 40
+skinparam ranksep 70
+skinparam entity {
+  BackgroundColor #FFFFFF
+  BorderColor #000000
+}
+
+entity "etiquetas" as etiquetas {
+  * id_etiqueta <<PK>>
+  --
+  nombre
+  estado
+}
+
+entity "usuario_etiquetas" as usuario_etiquetas {
+  * id_usuario <<PK,FK>>
+  * id_etiqueta <<PK,FK>>
+  --
+  asignado_por <<FK>>
+  fecha_asignacion
+}
+
+entity "usuarios" as usuarios {
+  * id_usuario <<PK>>
+  --
+  nombre
+  correo <<UK>>
+  contrasena_hash
+  rol
+  estado_cuenta
+  fecha_registro
+}
+
+entity "grupo_usuarios" as grupo_usuarios {
+  * id_grupo_usuarios <<PK>>
+  --
+  id_usuario <<FK>>
+  id_grupo <<FK>>
+  estado
+  fecha_ingreso
+  fecha_modificación
+  rol
+}
+
+entity "grupos" as grupos {
+  * id_grupo <<PK>>
+  --
+  nombre <<UK>>
+  descripción
+  visibilidad
+  fecha_creación
+}
+
+entity "auditorias" as auditorias {
+  * id_auditoria <<PK>>
+  --
+  entidad
+  entidad_id
+  campo
+  valor_anterior
+  valor_nuevo
+  usuario_id
+  fecha
+}
+
+entity "solicitudes" as solicitudes {
+  * id_solicitud <<PK>>
+  --
+  id_solicitante <<FK>>
+  estado
+  id_responsable <<FK>>
+  fecha_creacion
+  fecha_resolucion
+  tipo
+  justificación_solicitante
+  respuesta_resolución
+}
+
+entity "visualizacion" as visualizacion {
+  * id_visualizacion <<PK>>
+  --
+  id_sensor <<FK>>
+  id_usuario <<FK>>
+  tipo
+  configuracion
+  fecha_creacion
+  fecha_modificacion
+}
+
+entity "sensores" as sensores {
+  * id_sensor <<PK>>
+  --
+  id_modulo <<FK>>
+  tipo
+}
+
+entity "modulos" as modulos {
+  * id_modulo <<PK>>
+  --
+  id_propietario <<FK>>
+  id_grupo <<FK>>
+  fecha_modificación
+  modificado_por <<FK>>
+}
+
+' ===== Fila superior =====
+etiquetas         "1:*" -- "1:1" usuario_etiquetas
+usuario_etiquetas "1:1" -- "1:*" usuarios
+usuarios          "1:*" -- "1:1" grupo_usuarios
+grupo_usuarios    "1:1" -- "1:*" grupos
+
+' ===== Fila inferior =====
+visualizacion "1:1" -- "1:*" sensores
+sensores      "1:*" -- "1:1" modulos
+
+' ===== Conexiones entre filas =====
+usuarios "1:*" -down- "1:1" solicitudes
+usuarios "1:*" -down- "1:1" visualizacion
+usuarios "1:*" -down- "1:1" modulos
+grupos   "1:*" -down- "1:1" modulos
+
+' Orden de la fila inferior (enlaces invisibles)
+auditorias -[hidden]right- solicitudes
+solicitudes -[hidden]right- visualizacion
+@enduml
