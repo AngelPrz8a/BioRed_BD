@@ -30,7 +30,7 @@ entity "usuarios" as usuarios {
   nombre
   correo <<UK>>
   contrasena_hash
-  rol
+  rol_global
   estado_cuenta
   fecha_registro
 }
@@ -40,19 +40,22 @@ entity "grupo_usuarios" as grupo_usuarios {
   --
   id_usuario <<FK>>
   id_grupo <<FK>>
+  id_solicitud_origen <<FK>>
   estado
+  rol_grupo
   fecha_ingreso
-  fecha_modificación
-  rol
+  fecha_modificacion
+  --
+  UK (id_usuario, id_grupo)
 }
 
 entity "grupos" as grupos {
   * id_grupo <<PK>>
   --
   nombre <<UK>>
-  descripción
+  descripcion
   visibilidad
-  fecha_creación
+  fecha_creacion
 }
 
 entity "auditorias" as auditorias {
@@ -60,10 +63,12 @@ entity "auditorias" as auditorias {
   --
   entidad
   entidad_id
+  accion
   campo
   valor_anterior
   valor_nuevo
   usuario_id
+  id_grupo_contexto
   fecha
 }
 
@@ -71,13 +76,33 @@ entity "solicitudes" as solicitudes {
   * id_solicitud <<PK>>
   --
   id_solicitante <<FK>>
-  estado
   id_responsable <<FK>>
+  tipo
+  id_modulo <<FK>>
+  id_grupo <<FK>>
+  rol_solicitado
+  nivel_acceso_solicitado
+  estado
   fecha_creacion
   fecha_resolucion
-  tipo
-  justificación_solicitante
-  respuesta_resolución
+  justificacion_solicitante
+  respuesta_resolucion
+}
+
+entity "accesos" as accesos {
+  * id_acceso <<PK>>
+  --
+  id_modulo <<FK>>
+  id_usuario <<FK>>
+  id_solicitud <<FK,UK>>
+  nivel_acceso
+  estado
+  concedido_por <<FK>>
+  fecha_concesion
+  fecha_expiracion
+  revocado_por <<FK>>
+  fecha_revocacion
+  motivo_revocacion
 }
 
 entity "visualizacion" as visualizacion {
@@ -103,9 +128,32 @@ entity "modulos" as modulos {
   --
   id_propietario <<FK>>
   id_grupo <<FK>>
-  fecha_modificación
+  visibilidad
+  fecha_modificacion
   modificado_por <<FK>>
 }
+
+note bottom of usuarios
+  rol_global: administrador | usuario
+  (alcance: toda la plataforma)
+end note
+
+note bottom of grupo_usuarios
+  rol_grupo: miembro | coordinador
+  (alcance: solo el id_grupo de la fila)
+end note
+
+note bottom of modulos
+  visibilidad: publico | identificados |
+  grupo | privado
+  (grupo exige id_grupo NOT NULL)
+end note
+
+note bottom of auditorias
+  id_grupo_contexto: copia del grupo al
+  momento del cambio (sin FK, se conserva
+  aunque el recurso cambie de grupo o se elimine)
+end note
 
 ' ===== Fila superior =====
 etiquetas         "1:*" -- "1:1" usuario_etiquetas
@@ -122,6 +170,14 @@ usuarios "1:*" -down- "1:1" solicitudes
 usuarios "1:*" -down- "1:1" visualizacion
 usuarios "1:*" -down- "1:1" modulos
 grupos   "1:*" -down- "1:1" modulos
+
+' ===== Solicitudes y accesos concedidos =====
+solicitudes "1:*" -- "0:1" modulos
+solicitudes "1:*" -- "0:1" grupos
+solicitudes "1:1" -- "0:1" accesos
+solicitudes "1:1" -- "0:1" grupo_usuarios
+usuarios    "1:*" -- "1:1" accesos
+modulos     "1:*" -- "1:1" accesos
 
 ' Orden de la fila inferior (enlaces invisibles)
 auditorias -[hidden]right- solicitudes
